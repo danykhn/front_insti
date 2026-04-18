@@ -61,6 +61,7 @@ interface StoreState {
   // Usuario
   usuario: Usuario
   setUsuario: (usuario: Usuario) => void
+  setRol: (rol: "CURSANTE" | "ADMIN" | "EMPLEADO") => void
   
   // Carrito
   carrito: CartItem[]
@@ -187,6 +188,9 @@ export const useStore = create<StoreState>()(
       // Usuario
       usuario: usuarioInicial,
       setUsuario: (usuario) => set({ usuario }),
+      setRol: (rol) => set((state) => ({ 
+        usuario: { ...state.usuario, rol } 
+      })),
       
       // Carrito
       carrito: [],

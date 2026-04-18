@@ -24,6 +24,7 @@ import { AuthGuard } from "@/components/auth-guard"
 function HomePageContent() {
   const router = useRouter()
   const usuario = useStore((state) => state.usuario)
+  const setRol = useStore((state) => state.setRol)
   const pedidos = useStore((state) => state.pedidos)
   const getCantidadTotal = useStore((state) => state.getCantidadTotal)
   const getTotalCarrito = useStore((state) => state.getTotalCarrito)
@@ -90,13 +91,42 @@ function HomePageContent() {
   return (
     <DashboardLayout title="Inicio">
       <div className="flex flex-col gap-6">
+        {/* Banner de selección de rol para testing */}
+        <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+          <div className="flex flex-col gap-3">
+            <div>
+              <p className="font-semibold text-blue-900">🔧 Modo de Prueba - Cambiar Rol</p>
+              <p className="text-sm text-blue-800">Selecciona un rol para ver las vistas correspondientes:</p>
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              {(['CURSANTE', 'ADMIN', 'EMPLEADO'] as const).map((rol) => (
+                <Button
+                  key={rol}
+                  variant={usuario.rol === rol ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setRol(rol)}
+                >
+                  {rol === 'CURSANTE' && '👨‍🎓'}
+                  {rol === 'ADMIN' && '👨‍💼'}
+                  {rol === 'EMPLEADO' && '👷'}
+                  {' '}
+                  {rol}
+                </Button>
+              ))}
+            </div>
+          </div>
+        </div>
+
         {/* Saludo */}
         <div className="flex flex-col gap-2">
           <h1 className="text-2xl font-bold text-balance">
             Bienvenido, {usuario.nombre.split(" ")[0]}
           </h1>
           <p className="text-muted-foreground">
-            Explora el catálogo de cartillas y gestiona tus pedidos desde aquí.
+            Rol: <span className="font-semibold">{usuario.rol}</span>
+            {usuario.rol === 'CURSANTE' && ' - Explora el catálogo de cartillas y gestiona tus pedidos desde aquí.'}
+            {usuario.rol === 'ADMIN' && ' - Panel de administración del sistema.'}
+            {usuario.rol === 'EMPLEADO' && ' - Panel de procesamiento de pedidos.'}
           </p>
         </div>
 

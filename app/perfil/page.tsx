@@ -31,6 +31,7 @@ import { useStore } from "@/lib/store"
 function PerfilPageContent() {
   const usuario = useStore((state) => state.usuario)
   const setUsuario = useStore((state) => state.setUsuario)
+  const setRol = useStore((state) => state.setRol)
   const pedidos = useStore((state) => state.pedidos)
   const pagos = useStore((state) => state.pagos)
 
@@ -327,31 +328,66 @@ function PerfilPageContent() {
               </CardContent>
             </Card>
 
-            {/* Información de cuenta */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Información de Cuenta</CardTitle>
-              </CardHeader>
-              <CardContent className="flex flex-col gap-3 text-sm">
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">ID de Usuario</span>
-                  <span className="font-mono">{usuario.id}</span>
-                </div>
-                <Separator />
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Estado</span>
-                  <span className="flex items-center gap-2 text-accent">
-                    <span className="size-2 rounded-full bg-accent" />
-                    Activo
-                  </span>
-                </div>
-                <Separator />
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Tipo de Cuenta</span>
-                  <span>Estudiante</span>
-                </div>
-              </CardContent>
-            </Card>
+             {/* Información de cuenta */}
+             <Card>
+               <CardHeader>
+                 <CardTitle>Información de Cuenta</CardTitle>
+               </CardHeader>
+               <CardContent className="flex flex-col gap-3 text-sm">
+                 <div className="flex items-center justify-between">
+                   <span className="text-muted-foreground">ID de Usuario</span>
+                   <span className="font-mono">{usuario.id}</span>
+                 </div>
+                 <Separator />
+                 <div className="flex items-center justify-between">
+                   <span className="text-muted-foreground">Estado</span>
+                   <span className="flex items-center gap-2 text-accent">
+                     <span className="size-2 rounded-full bg-accent" />
+                     Activo
+                   </span>
+                 </div>
+                 <Separator />
+                 <div className="flex items-center justify-between">
+                   <span className="text-muted-foreground">Rol</span>
+                   <span className="font-medium">{usuario.rol}</span>
+                 </div>
+                 <Separator />
+                 <div className="flex items-center justify-between">
+                   <span className="text-muted-foreground">Tipo de Cuenta</span>
+                   <span>Estudiante</span>
+                 </div>
+               </CardContent>
+             </Card>
+
+             {/* Selector de rol para testing */}
+             <Card className="border-amber-200 bg-amber-50">
+               <CardHeader>
+                 <CardTitle className="text-amber-900">Cambiar Rol (Testing)</CardTitle>
+                 <CardDescription className="text-amber-800">
+                   Selecciona un rol para ver las vistas correspondientes
+                 </CardDescription>
+               </CardHeader>
+               <CardContent className="flex flex-col gap-3">
+                 <div className="space-y-2">
+                   {(['CURSANTE', 'ADMIN', 'EMPLEADO'] as const).map((rol) => (
+                     <Button
+                       key={rol}
+                       variant={usuario.rol === rol ? "default" : "outline"}
+                       className="w-full justify-start"
+                       onClick={() => setRol(rol)}
+                     >
+                       {rol === 'CURSANTE' && '👨‍🎓'}
+                       {rol === 'ADMIN' && '👨‍💼'}
+                       {rol === 'EMPLEADO' && '👷'}
+                       {' '}
+                       {rol === 'CURSANTE' && 'Ver como Cursante'}
+                       {rol === 'ADMIN' && 'Ver como Admin'}
+                       {rol === 'EMPLEADO' && 'Ver como Empleado'}
+                     </Button>
+                   ))}
+                 </div>
+               </CardContent>
+             </Card>
           </div>
         </div>
 
