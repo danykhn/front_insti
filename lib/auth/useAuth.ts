@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import authService, { AuthToken } from './authService';
-import { useStore } from '@/lib/store';
+import { useStore, type Usuario } from '@/lib/store';
 
 export function useAuth() {
   const [isLoading, setIsLoading] = useState(false);
@@ -111,6 +111,7 @@ export function useAuth() {
     setError(null);
     try {
       const response = await authService.googleLogin(profile);
+      console.log('[useAuth] googleLogin response:', response);
       setUser(response.user);
       authService.setUser(response.user);
       setIsAuthenticated(true);
@@ -118,16 +119,32 @@ export function useAuth() {
       // Usar ID del usuario o generar uno si no existe
       const userId = response.user.id || response.user.email || 'temp-' + Date.now();
       
-      // Actualizar el store
+      //优先使用后端返回的姓名
+      const firstName = response.user.firstName || '';
+      const lastName = response.user.lastName || '';
+      const nombreCompleto = `${firstName} ${lastName}`.trim() || profile.name || 'Usuario';
+      
+      console.log('[useAuth] updating store with:', {
+        id: userId,
+        nombre: nombreCompleto,
+        firstName: firstName,
+        lastName: lastName,
+        email: response.user.email || profile.email || '',
+        rol: response.user.role,
+      });
+      
       setUsuario({
         id: userId,
-        nombre: `${response.user.firstName || ''} ${response.user.lastName || ''}`.trim() || profile.name || 'Usuario',
+        nombre: nombreCompleto,
         email: response.user.email || profile.email || '',
+        firstName: firstName,
+        lastName: lastName,
         telefono: '',
         direccion: '',
         avatar: response.user.picture || profile.image || '',
         grado: '',
         institucion: '',
+        rol: response.user.role || 'CURSANTE',
       });
       storeLogin(response.user.email || profile.email || '', '');
       return response;

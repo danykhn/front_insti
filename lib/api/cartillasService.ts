@@ -10,11 +10,9 @@ export interface Cartilla {
   precio: number;
   cantidad: number;
   imagen: string;
-  etiquetas?: Array<{
-    id: string;
-    nombre: string;
-  }>;
+  etiquetas?: Array<{ id: string; nombre: string } | string>;
   createdAt: string;
+  updatedAt?: string;
 }
 
 class CartillasService {
@@ -56,24 +54,60 @@ class CartillasService {
     }
   }
 
-  /**
-   * Obtener etiquetas
-   */
-  async getEtiquetas() {
-    try {
-      const response = await this.api.get('/cartillas/etiquetas');
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
-  }
+   /**
+    * Obtener etiquetas
+    */
+   async getEtiquetas() {
+     try {
+       const response = await this.api.get('/cartillas/etiquetas');
+       return response.data;
+     } catch (error) {
+       throw error;
+     }
+   }
 
-  /**
-   * Establecer token de autenticación
-   */
-  setToken(token: string): void {
-    this.api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-  }
-}
+   /**
+    * Crear cartilla (solo admin)
+    */
+   async createCartilla(data: any) {
+     try {
+       const response = await this.api.post('/cartillas', data);
+       return response.data;
+     } catch (error) {
+       throw error;
+     }
+   }
+
+   /**
+    * Actualizar cartilla (solo admin)
+    */
+   async updateCartilla(id: string, data: any) {
+     try {
+       const response = await this.api.patch(`/cartillas/${id}`, data);
+       return response.data;
+     } catch (error) {
+       throw error;
+     }
+   }
+
+   /**
+    * Eliminar cartilla (solo admin)
+    */
+   async deleteCartilla(id: string) {
+     try {
+       const response = await this.api.delete(`/cartillas/${id}`);
+       return response.data;
+     } catch (error) {
+       throw error;
+     }
+   }
+
+   /**
+    * Establecer token de autenticación
+    */
+   setToken(token: string): void {
+     this.api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+   }
+ }
 
 export default new CartillasService();

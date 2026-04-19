@@ -20,14 +20,27 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useStore, catalogoCartillas } from "@/lib/store"
 import { AuthGuard } from "@/components/auth-guard"
+import { useHomeStats } from "@/lib/hooks/useHomeStats"
 
 function HomePageContent() {
   const router = useRouter()
   const usuario = useStore((state) => state.usuario)
   const setRol = useStore((state) => state.setRol)
-  const pedidos = useStore((state) => state.pedidos)
   const getCantidadTotal = useStore((state) => state.getCantidadTotal)
   const getTotalCarrito = useStore((state) => state.getTotalCarrito)
+  
+  // Get real stats from API
+  const { 
+    cartillasDisponibles, 
+    carritoCantidad, 
+    carritoTotal, 
+    pedidosActivos, 
+    pedidosEntregados, 
+    pedidosRecientes, 
+    cartillasDestacadas,
+    recargar,
+    loading: statsLoading 
+  } = useHomeStats()
 
   // Redirigir según el rol del usuario
   useEffect(() => {
@@ -49,18 +62,18 @@ function HomePageContent() {
     )
   }
 
-  const pedidosPendientes = pedidos.filter((p) => p.estado === "pendiente").length
-  const pedidosEnviados = pedidos.filter((p) => p.estado === "enviado").length
-  const pedidosEntregados = pedidos.filter((p) => p.estado === "entregado").length
   const cantidadCarrito = getCantidadTotal()
   const totalCarrito = getTotalCarrito()
 
-  const cartillasDestacadas = catalogoCartillas.filter((c) => c.disponible).slice(0, 4)
-
-  const estadisticas = [
+  const estadisticas = statsLoading ? [
+    { titulo: "Cartillas Disponibles", valor: "...", icono: BookOpen, color: "text-primary", bgColor: "bg-primary/10" },
+    { titulo: "En tu Carrito", valor: 0, icono: ShoppingCart, color: "text-accent", bgColor: "bg-accent/10" },
+    { titulo: "Pedidos Activos", valor: 0, icono: Package, color: "text-chart-3", bgColor: "bg-chart-3/10" },
+    { titulo: "Pedidos Entregados", valor: 0, icono: CheckCircle, color: "text-chart-2", bgColor: "bg-chart-2/10" },
+  ] : [
     {
       titulo: "Cartillas Disponibles",
-      valor: catalogoCartillas.filter((c) => c.disponible).length,
+      valor: cartillasDisponibles,
       icono: BookOpen,
       color: "text-primary",
       bgColor: "bg-primary/10",
@@ -74,7 +87,7 @@ function HomePageContent() {
     },
     {
       titulo: "Pedidos Activos",
-      valor: pedidosPendientes + pedidosEnviados,
+      valor: pedidosActivos,
       icono: Package,
       color: "text-chart-3",
       bgColor: "bg-chart-3/10",
@@ -91,36 +104,38 @@ function HomePageContent() {
   return (
     <DashboardLayout title="Inicio">
       <div className="flex flex-col gap-6">
-        {/* Banner de selección de rol para testing */}
-        <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
-          <div className="flex flex-col gap-3">
-            <div>
-              <p className="font-semibold text-blue-900">🔧 Modo de Prueba - Cambiar Rol</p>
-              <p className="text-sm text-blue-800">Selecciona un rol para ver las vistas correspondientes:</p>
-            </div>
-            <div className="flex gap-2 flex-wrap">
-              {(['CURSANTE', 'ADMIN', 'EMPLEADO'] as const).map((rol) => (
-                <Button
-                  key={rol}
-                  variant={usuario.rol === rol ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setRol(rol)}
-                >
-                  {rol === 'CURSANTE' && '👨‍🎓'}
-                  {rol === 'ADMIN' && '👨‍💼'}
-                  {rol === 'EMPLEADO' && '👷'}
-                  {' '}
-                  {rol}
-                </Button>
-              ))}
+        {/* Banner de selección de rol para testing - SOLO EN DESARROLLO */}
+        {process.env.NODE_ENV === "development" && (
+          <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+            <div className="flex flex-col gap-3">
+              <div>
+                <p className="font-semibold text-blue-900">🔧 Modo de Prueba - Cambiar Rol</p>
+                <p className="text-sm text-blue-800">Selecciona un rol para ver las vistas correspondientes:</p>
+              </div>
+              <div className="flex gap-2 flex-wrap">
+                {(['CURSANTE', 'ADMIN', 'EMPLEADO'] as const).map((rol) => (
+                  <Button
+                    key={rol}
+                    variant={usuario.rol === rol ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setRol(rol)}
+                  >
+                    {rol === 'CURSANTE' && '👨‍🎓'}
+                    {rol === 'ADMIN' && '👨‍💼'}
+                    {rol === 'EMPLEADO' && '👷'}
+                    {' '}
+                    {rol}
+                  </Button>
+                ))}
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Saludo */}
         <div className="flex flex-col gap-2">
           <h1 className="text-2xl font-bold text-balance">
-            Bienvenido, {usuario.nombre.split(" ")[0]}
+            Bienvenido, {usuario.firstName || ""}
           </h1>
           <p className="text-muted-foreground">
             Rol: <span className="font-semibold">{usuario.rol}</span>
@@ -179,7 +194,7 @@ function HomePageContent() {
                       <div className="flex-1 text-left">
                         <p className="font-medium">Mis Pedidos</p>
                         <p className="text-xs text-muted-foreground">
-                          {pedidosPendientes + pedidosEnviados} pedidos activos
+                          {pedidosActivos || 0} pedidos activos
                         </p>
                       </div>
                       <ArrowRight className="size-4" />
@@ -307,7 +322,7 @@ function HomePageContent() {
         </Card>
 
         {/* Pedidos recientes */}
-        {pedidos.length > 0 && (
+        {(pedidosRecientes?.length > 0) && (
           <Card>
             <CardHeader className="flex-row items-center justify-between">
               <div>
@@ -323,7 +338,7 @@ function HomePageContent() {
             </CardHeader>
             <CardContent>
               <div className="flex flex-col gap-3">
-                {pedidos.slice(0, 3).map((pedido) => (
+                {pedidosRecientes.slice(0, 3).map((pedido: any) => (
                   <div
                     key={pedido.id}
                     className="flex items-center justify-between rounded-lg border p-4"
@@ -333,30 +348,30 @@ function HomePageContent() {
                         <Package className="size-5 text-muted-foreground" />
                       </div>
                       <div>
-                        <p className="font-medium">Pedido #{pedido.id.split("_")[1]}</p>
+                        <p className="font-medium">Pedido #{pedido.numeroOrden || pedido.id}</p>
                         <p className="text-sm text-muted-foreground">
-                          {pedido.items.length} artículo{pedido.items.length !== 1 ? "s" : ""} -{" "}
-                          ${pedido.total.toLocaleString("es-MX")}
+                          {pedido.cantidad_total || pedido.articulos?.length || 0} artículo(s) -{" "}
+                          ${pedido.precio_total?.toLocaleString("es-MX") || 0}
                         </p>
                       </div>
                     </div>
                     <Badge
                       variant={
-                        pedido.estado === "entregado"
+                        pedido.estado === "COMPLETADO"
                           ? "default"
-                          : pedido.estado === "enviado"
+                          : pedido.estado === "PAGADO"
                           ? "secondary"
                           : "outline"
                       }
                       className={
-                        pedido.estado === "entregado"
-                          ? "bg-chart-2 text-white"
-                          : pedido.estado === "enviado"
-                          ? "bg-chart-1 text-white"
+                        pedido.estado === "COMPLETADO"
+                          ? "bg-green-600 text-white"
+                          : pedido.estado === "PAGADO"
+                          ? "bg-blue-600 text-white"
                           : ""
                       }
                     >
-                      {pedido.estado.charAt(0).toUpperCase() + pedido.estado.slice(1)}
+                      {pedido.estado}
                     </Badge>
                   </div>
                 ))}

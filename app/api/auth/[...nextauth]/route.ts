@@ -12,8 +12,6 @@ const handlers = NextAuth({
   ],
   callbacks: {
     async signIn({ user, account, profile }) {
-      // Aquí puedes agregar lógica adicional para validar el usuario
-      // Por ahora, solo permitir el login
       return true;
     },
     async jwt({ token, user, account }) {
@@ -24,6 +22,7 @@ const handlers = NextAuth({
       }
       if (user) {
         token.user = user;
+        token.email = user.email;
       }
       return token;
     },
@@ -32,11 +31,11 @@ const handlers = NextAuth({
         session.user.id = token.sub;
         session.accessToken = token.accessToken;
         session.idToken = token.idToken;
+        session.email = token.email;
       }
       return session;
     },
     async redirect({ url, baseUrl }) {
-      // Permitir redirecciones al mismo origen
       if (url.startsWith("/")) return `${baseUrl}${url}`;
       else if (new URL(url).origin === baseUrl) return url;
       return baseUrl;

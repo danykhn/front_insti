@@ -85,9 +85,19 @@ const menuItemsAdmin = [
     icon: ClipboardList,
   },
   {
+    title: "Datos Bancarios",
+    href: "/admin/datos-bancarios",
+    icon: CreditCard,
+  },
+  {
     title: "Catálogo",
     href: "/catalogo",
     icon: BookOpen,
+  },
+  {
+    title: "Cartillas",
+    href: "/admin/cartillas",
+    icon: FileText,
   },
   {
     title: "Reportes",
@@ -131,6 +141,8 @@ export function AppSidebar() {
   const logout = useStore((state) => state.logout)
   const getCantidadTotal = useStore((state) => state.getCantidadTotal)
   const cantidadCarrito = getCantidadTotal()
+
+  console.log('[AppSidebar] usuario:', usuario.firstName, usuario.lastName, usuario.email)
 
   const getMenuItems = () => {
     switch (usuario.rol) {
@@ -218,18 +230,14 @@ export function AppSidebar() {
             <SidebarMenuButton asChild isActive={pathname === "/perfil"} tooltip="Mi Perfil">
               <Link href="/perfil" className="flex items-center gap-3">
                 <Avatar className="size-7">
-                  <AvatarImage src={usuario.avatar} alt={usuario.nombre} />
+                  <AvatarImage src={usuario.avatar} alt={usuario.firstName ? `${usuario.firstName} ${usuario.lastName ?? ''}` : undefined} />
                   <AvatarFallback className="text-xs">
-                    {usuario.nombre
-                      .split(" ")
-                      .map((n) => n[0])
-                      .join("")
-                      .slice(0, 2)}
+                    {((usuario.firstName || '').slice(0, 1) + (usuario.lastName || '').slice(0, 1)) || 'U'}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex flex-col items-start">
                   <span className="text-sm font-medium truncate max-w-[140px]">
-                    {usuario.nombre}
+                    {usuario.firstName || usuario.lastName || usuario.email || 'Usuario'}
                   </span>
                   <span className="text-xs text-muted-foreground truncate max-w-[140px]">
                     {getRoleLabel()}

@@ -33,41 +33,32 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
-import { useStore, type Pedido } from "@/lib/store"
+import { useUserPedidos } from "@/lib/hooks/useUserPedidos"
 
-const estadoConfig: Record<
-  Pedido["estado"],
-  { label: string; icon: React.ElementType; color: string; bgColor: string }
-> = {
-  pendiente: {
+const estadoConfig: Record<string, { label: string; icon: React.ElementType; color: string; bgColor: string }> = {
+  PENDIENTE: {
     label: "Pendiente",
     icon: Clock,
-    color: "text-chart-4",
-    bgColor: "bg-chart-4/10",
+    color: "text-amber-600",
+    bgColor: "bg-amber-100",
   },
-  pagado: {
+  PAGADO: {
     label: "Pagado",
     icon: CreditCard,
-    color: "text-chart-1",
-    bgColor: "bg-chart-1/10",
+    color: "text-blue-600",
+    bgColor: "bg-blue-100",
   },
-  enviado: {
-    label: "Enviado",
-    icon: Truck,
-    color: "text-primary",
-    bgColor: "bg-primary/10",
-  },
-  entregado: {
+  COMPLETADO: {
     label: "Entregado",
     icon: CheckCircle,
-    color: "text-accent",
-    bgColor: "bg-accent/10",
+    color: "text-green-600",
+    bgColor: "bg-green-100",
   },
-  cancelado: {
+  CANCELADO: {
     label: "Cancelado",
     icon: XCircle,
-    color: "text-destructive",
-    bgColor: "bg-destructive/10",
+    color: "text-red-600",
+    bgColor: "bg-red-100",
   },
 }
 
@@ -96,40 +87,44 @@ function PedidosPageContent() {
   const [estadoFiltro, setEstadoFiltro] = useState<string>("todos")
   const [pedidoExpandido, setPedidoExpandido] = useState<string | null>(null)
 
-  const pedidos = useStore((state) => state.pedidos)
+  // Get real data from API
+  const { 
+    pedidos, 
+    loading, 
+    error, 
+    total, 
+    pendientes, 
+    enCamino, 
+    completados,
+    recargar 
+  } = useUserPedidos()
 
   const pedidosFiltrados = useMemo(() => {
-    let resultado = [...pedidos]
+    let resultado = [...(pedidos || [])]
 
     if (busqueda) {
       const searchLower = busqueda.toLowerCase()
       resultado = resultado.filter(
-        (p) =>
-          p.id.toLowerCase().includes(searchLower) ||
-          p.items.some((item) =>
-            item.cartilla.titulo.toLowerCase().includes(searchLower)
+        (p: any) =>
+          p.id?.toLowerCase().includes(searchLower) ||
+          p.numeroOrden?.toLowerCase().includes(searchLower) ||
+          (p.articulos as any[])?.some((item: any) =>
+            item.titulo?.toLowerCase().includes(searchLower)
           )
       )
     }
 
     if (estadoFiltro !== "todos") {
-      resultado = resultado.filter((p) => p.estado === estadoFiltro)
+      resultado = resultado.filter((p: any) => p.estado === estadoFiltro)
     }
 
     return resultado.sort(
-      (a, b) =>
-        new Date(b.fechaCreacion).getTime() - new Date(a.fechaCreacion).getTime()
+      (a: any, b: any) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     )
   }, [pedidos, busqueda, estadoFiltro])
 
-  const resumen = useMemo(() => {
-    return {
-      total: pedidos.length,
-      pendientes: pedidos.filter((p) => p.estado === "pendiente").length,
-      enviados: pedidos.filter((p) => p.estado === "enviado").length,
-      entregados: pedidos.filter((p) => p.estado === "entregado").length,
-    }
-  }, [pedidos])
+  const resumen = { total, pendientes, enCamino, completados }
 
   return (
     <DashboardLayout title="Mis Pedidos" breadcrumbs={[{ label: "Mis Pedidos" }]}>
@@ -150,40 +145,40 @@ function PedidosPageContent() {
                 <Package className="size-6 text-muted-foreground" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{resumen.total}</p>
+                <p className="text-2xl font-bold">{total}</p>
                 <p className="text-sm text-muted-foreground">Total Pedidos</p>
               </div>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="flex items-center gap-4 pt-6">
-              <div className={`flex size-12 items-center justify-center rounded-lg ${estadoConfig.pendiente.bgColor}`}>
-                <Clock className={`size-6 ${estadoConfig.pendiente.color}`} />
+              <div className={`flex size-12 items-center justify-center rounded-lg ${estadoConfig['PENDIENTE'].bgColor}`}>
+                <Clock className={`size-6 ${estadoConfig['PENDIENTE'].color}`} />
               </div>
               <div>
-                <p className="text-2xl font-bold">{resumen.pendientes}</p>
+                <p className="text-2xl font-bold">{pendientes}</p>
                 <p className="text-sm text-muted-foreground">Pendientes</p>
               </div>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="flex items-center gap-4 pt-6">
-              <div className={`flex size-12 items-center justify-center rounded-lg ${estadoConfig.enviado.bgColor}`}>
-                <Truck className={`size-6 ${estadoConfig.enviado.color}`} />
+              <div className={`flex size-12 items-center justify-center rounded-lg ${estadoConfig['PAGADO'].bgColor}`}>
+                <Truck className={`size-6 ${estadoConfig['PAGADO'].color}`} />
               </div>
               <div>
-                <p className="text-2xl font-bold">{resumen.enviados}</p>
+                <p className="text-2xl font-bold">{enCamino}</p>
                 <p className="text-sm text-muted-foreground">En Camino</p>
               </div>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="flex items-center gap-4 pt-6">
-              <div className={`flex size-12 items-center justify-center rounded-lg ${estadoConfig.entregado.bgColor}`}>
-                <CheckCircle className={`size-6 ${estadoConfig.entregado.color}`} />
+              <div className={`flex size-12 items-center justify-center rounded-lg ${estadoConfig['COMPLETADO'].bgColor}`}>
+                <CheckCircle className={`size-6 ${estadoConfig['COMPLETADO'].color}`} />
               </div>
               <div>
-                <p className="text-2xl font-bold">{resumen.entregados}</p>
+                <p className="text-2xl font-bold">{completados}</p>
                 <p className="text-sm text-muted-foreground">Entregados</p>
               </div>
             </CardContent>
@@ -256,20 +251,19 @@ function PedidosPageContent() {
                                 </Badge>
                               </div>
                               <CardDescription>
-                                {formatFecha(pedido.fechaCreacion)} -{" "}
-                                {pedido.items.length} artículo
-                                {pedido.items.length !== 1 ? "s" : ""}
+                                {formatFecha(pedido.createdAt)} -{" "}
+                                {(pedido.cartillas?.length || pedido.articulos?.length || pedido.cantidad_total || 0)} artículo(s)
                               </CardDescription>
                             </div>
                           </div>
                           <div className="flex items-center gap-4">
                             <div className="text-right">
                               <p className="text-lg font-bold text-primary">
-                                ${pedido.total.toLocaleString("es-MX")}
+                                ${(pedido.precio_total || pedido.total || 0).toLocaleString("es-MX")}
                               </p>
-                              {pedido.metodoPago && (
+                              {pedido.metodo_pago && (
                                 <p className="text-xs text-muted-foreground">
-                                  {pedido.metodoPago}
+                                  {pedido.metodo_pago}
                                 </p>
                               )}
                             </div>
@@ -290,52 +284,61 @@ function PedidosPageContent() {
                             <h4 className="font-medium">Estado del pedido</h4>
                             <div className="flex items-center gap-2 text-sm">
                               <span className="text-muted-foreground">Creado:</span>
-                              <span>{formatFechaHora(pedido.fechaCreacion)}</span>
+                              <span>{formatFechaHora(pedido.createdAt)}</span>
                             </div>
-                            <div className="flex items-center gap-2 text-sm">
-                              <span className="text-muted-foreground">
-                                Última actualización:
-                              </span>
-                              <span>{formatFechaHora(pedido.fechaActualizacion)}</span>
-                            </div>
+                            {pedido.updatedAt && (
+                              <div className="flex items-center gap-2 text-sm">
+                                <span className="text-muted-foreground">Última actualización:</span>
+                                <span>{formatFechaHora(pedido.updatedAt)}</span>
+                              </div>
+                            )}
                           </div>
 
-                          {/* Productos */}
+{/* Productos */}
                           <div className="flex flex-col gap-3">
-                            <h4 className="font-medium">Productos</h4>
-                            {pedido.items.map((item) => (
+                            <h4 className="font-medium">Productos del pedido</h4>
+                            {(pedido.cartillas || pedido.articulos || []).map((item: any, idx: number) => (
                               <div
-                                key={item.cartilla.id}
+                                key={item.cartillaId || item.id || idx}
                                 className="flex items-center gap-4 rounded-lg border p-3"
                               >
                                 <div className="size-16 shrink-0 overflow-hidden rounded-md bg-muted">
                                   <img
-                                    src={item.cartilla.imagen}
-                                    alt={item.cartilla.titulo}
+                                    src={item.cartilla?.imagen || item.imagen || '/placeholder.svg'}
+                                    alt={item.cartilla?.titulo || 'Producto'}
                                     className="size-full object-cover"
                                   />
                                 </div>
                                 <div className="flex-1">
-                                  <p className="font-medium">{item.cartilla.titulo}</p>
+                                  <p className="font-medium">{item.cartilla?.titulo || item.titulo || 'Cartilla'}</p>
                                   <p className="text-sm text-muted-foreground">
-                                    {item.cartilla.materia} - Cantidad: {item.cantidad}
+                                    Materia: {item.cartilla?.materia || item.materia || 'N/A'}
+                                  </p>
+                                  <p className="text-sm text-muted-foreground">
+                                    Autor: {item.cartilla?.autor || item.autor || 'N/A'}
+                                  </p>
+                                  <p className="text-sm text-muted-foreground">
+                                    Carrera: {item.cartilla?.carrera || item.carrera || 'N/A'}
                                   </p>
                                 </div>
-                                <p className="font-medium">
-                                  ${(item.cartilla.precio * item.cantidad).toLocaleString("es-MX")}
-                                </p>
+                                <div className="text-right">
+                                  <p className="text-sm text-muted-foreground">Cantidad: {item.cantidad}</p>
+                                  <p className="font-medium">
+                                    ${(item.precio_unitario || item.cartilla?.precio || item.precio || 0) * item.cantidad}
+                                  </p>
+                                </div>
                               </div>
                             ))}
                           </div>
+                        </div>
 
-                          {/* Resumen */}
+                        {/* Resumen */}
                           <div className="flex items-center justify-between rounded-lg bg-muted p-4">
                             <span className="font-medium">Total del pedido</span>
                             <span className="text-xl font-bold text-primary">
-                              ${pedido.total.toLocaleString("es-MX")}
+                              ${(pedido.precio_total || pedido.total || 0).toLocaleString("es-MX")}
                             </span>
                           </div>
-                        </div>
                       </CardContent>
                     </CollapsibleContent>
                   </Collapsible>

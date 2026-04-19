@@ -37,12 +37,13 @@ function PerfilPageContent() {
 
   const [editando, setEditando] = useState(false)
   const [formData, setFormData] = useState({
-    nombre: usuario.nombre,
+    firstName: usuario.firstName || "",
+    lastName: usuario.lastName || "",
     email: usuario.email,
-    telefono: usuario.telefono,
-    direccion: usuario.direccion,
-    grado: usuario.grado,
-    institucion: usuario.institucion,
+    telefono: usuario.telefono || "",
+    direccion: usuario.direccion || "",
+    grado: usuario.grado || "",
+    institucion: usuario.institucion || "",
   })
 
   const handleInputChange = (
@@ -55,19 +56,26 @@ function PerfilPageContent() {
   const handleGuardar = () => {
     setUsuario({
       ...usuario,
-      ...formData,
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      email: formData.email,
+      telefono: formData.telefono,
+      direccion: formData.direccion,
+      grado: formData.grado,
+      institucion: formData.institucion,
     })
     setEditando(false)
   }
 
   const handleCancelar = () => {
     setFormData({
-      nombre: usuario.nombre,
+      firstName: usuario.firstName || "",
+      lastName: usuario.lastName || "",
       email: usuario.email,
-      telefono: usuario.telefono,
-      direccion: usuario.direccion,
-      grado: usuario.grado,
-      institucion: usuario.institucion,
+      telefono: usuario.telefono || "",
+      direccion: usuario.direccion || "",
+      grado: usuario.grado || "",
+      institucion: usuario.institucion || "",
     })
     setEditando(false)
   }
@@ -144,16 +152,12 @@ function PerfilPageContent() {
                 {/* Avatar y nombre */}
                 <div className="flex items-center gap-4">
                   <div className="relative">
-                    <Avatar className="size-20">
-                      <AvatarImage src={usuario.avatar} alt={usuario.nombre} />
-                      <AvatarFallback className="text-xl">
-                        {usuario.nombre
-                          .split(" ")
-                          .map((n) => n[0])
-                          .join("")
-                          .slice(0, 2)}
-                      </AvatarFallback>
-                    </Avatar>
+                     <Avatar className="size-20">
+                       <AvatarImage src={usuario.avatar} alt={`${usuario.firstName} ${usuario.lastName}`} />
+                       <AvatarFallback className="text-xl">
+                         {`${usuario.firstName?.[0] || ""}${usuario.lastName?.[0] || ""}`}
+                       </AvatarFallback>
+                     </Avatar>
                     {editando && (
                       <Button
                         size="icon"
@@ -164,25 +168,36 @@ function PerfilPageContent() {
                       </Button>
                     )}
                   </div>
-                  <div>
-                    {editando ? (
-                      <div className="flex flex-col gap-1">
-                        <Label htmlFor="nombre">Nombre completo</Label>
-                        <Input
-                          id="nombre"
-                          name="nombre"
-                          value={formData.nombre}
-                          onChange={handleInputChange}
-                          className="max-w-xs"
-                        />
-                      </div>
-                    ) : (
-                      <>
-                        <h2 className="text-xl font-semibold">{usuario.nombre}</h2>
-                        <p className="text-muted-foreground">{usuario.grado}</p>
-                      </>
-                    )}
-                  </div>
+                   <div>
+                     {editando ? (
+                       <div className="flex flex-col gap-1">
+                         <Label htmlFor="firstName">Nombre</Label>
+                         <div className="flex gap-2">
+                           <Input
+                             id="firstName"
+                             name="firstName"
+                             value={formData.firstName}
+                             onChange={handleInputChange}
+                             placeholder="Nombre"
+                             className="max-w-xs"
+                           />
+                           <Input
+                             id="lastName"
+                             name="lastName"
+                             value={formData.lastName}
+                             onChange={handleInputChange}
+                             placeholder="Apellido"
+                             className="max-w-xs"
+                           />
+                         </div>
+                       </div>
+                     ) : (
+                       <>
+                         <h2 className="text-xl font-semibold">{usuario.firstName} {usuario.lastName}</h2>
+                         <p className="text-muted-foreground">{usuario.grado}</p>
+                       </>
+                     )}
+                   </div>
                 </div>
 
                 <Separator />
@@ -359,35 +374,37 @@ function PerfilPageContent() {
                </CardContent>
              </Card>
 
-             {/* Selector de rol para testing */}
-             <Card className="border-amber-200 bg-amber-50">
-               <CardHeader>
-                 <CardTitle className="text-amber-900">Cambiar Rol (Testing)</CardTitle>
-                 <CardDescription className="text-amber-800">
-                   Selecciona un rol para ver las vistas correspondientes
-                 </CardDescription>
-               </CardHeader>
-               <CardContent className="flex flex-col gap-3">
-                 <div className="space-y-2">
-                   {(['CURSANTE', 'ADMIN', 'EMPLEADO'] as const).map((rol) => (
-                     <Button
-                       key={rol}
-                       variant={usuario.rol === rol ? "default" : "outline"}
-                       className="w-full justify-start"
-                       onClick={() => setRol(rol)}
-                     >
-                       {rol === 'CURSANTE' && '👨‍🎓'}
-                       {rol === 'ADMIN' && '👨‍💼'}
-                       {rol === 'EMPLEADO' && '👷'}
-                       {' '}
-                       {rol === 'CURSANTE' && 'Ver como Cursante'}
-                       {rol === 'ADMIN' && 'Ver como Admin'}
-                       {rol === 'EMPLEADO' && 'Ver como Empleado'}
-                     </Button>
-                   ))}
-                 </div>
-               </CardContent>
-             </Card>
+             {/* Selector de rol para testing - SOLO EN DESARROLLO */}
+             {process.env.NODE_ENV === "development" && (
+               <Card className="border-amber-200 bg-amber-50">
+                 <CardHeader>
+                   <CardTitle className="text-amber-900">🔧 Cambiar Rol (Testing)</CardTitle>
+                   <CardDescription className="text-amber-800">
+                     Selecciona un rol para ver las vistas correspondientes
+                   </CardDescription>
+                 </CardHeader>
+                 <CardContent className="flex flex-col gap-3">
+                   <div className="space-y-2">
+                     {(['CURSANTE', 'ADMIN', 'EMPLEADO'] as const).map((rol) => (
+                       <Button
+                         key={rol}
+                         variant={usuario.rol === rol ? "default" : "outline"}
+                         className="w-full justify-start"
+                         onClick={() => setRol(rol)}
+                       >
+                         {rol === 'CURSANTE' && '👨‍🎓'}
+                         {rol === 'ADMIN' && '👨‍💼'}
+                         {rol === 'EMPLEADO' && '👷'}
+                         {' '}
+                         {rol === 'CURSANTE' && 'Ver como Cursante'}
+                         {rol === 'ADMIN' && 'Ver como Admin'}
+                         {rol === 'EMPLEADO' && 'Ver como Empleado'}
+                       </Button>
+                     ))}
+                   </div>
+                 </CardContent>
+               </Card>
+             )}
           </div>
         </div>
 

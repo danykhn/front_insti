@@ -42,21 +42,26 @@ export interface Pago {
 
 export interface Usuario {
   id: string
-  nombre: string
+  nombre?: string
+  firstName?: string
+  lastName?: string
   email: string
-  telefono: string
-  direccion: string
+  telefono?: string
+  direccion?: string
   avatar?: string
-  grado: string
-  institucion: string
+  grado?: string
+  institucion?: string
   rol: "CURSANTE" | "ADMIN" | "EMPLEADO"
 }
 
 interface StoreState {
   // Autenticación
   isAuthenticated: boolean
+  accessToken: string | null
   login: (email: string, password: string) => boolean
   logout: () => void
+  setAccessToken: (token: string) => void
+  setAuthData: (accessToken: string, usuario: Usuario) => void
   
   // Usuario
   usuario: Usuario
@@ -85,7 +90,8 @@ interface StoreState {
 // Datos de ejemplo para el usuario
 const usuarioInicial: Usuario = {
   id: "usr_001",
-  nombre: "María García López",
+  firstName: "María",
+  lastName: "García López",
   email: "maria.garcia@estudiante.edu",
   telefono: "+52 55 1234 5678",
   direccion: "Av. Universidad #123, Col. Centro, CDMX",
@@ -173,6 +179,7 @@ export const useStore = create<StoreState>()(
     (set, get) => ({
       // Autenticación
       isAuthenticated: false,
+      accessToken: null,
       login: (email: string, password: string) => {
         // Simulación de login - en producción esto sería una llamada a API
         if (email && password.length >= 4) {
@@ -182,7 +189,25 @@ export const useStore = create<StoreState>()(
         return false
       },
       logout: () => {
-        set({ isAuthenticated: false, carrito: [] })
+        set({ isAuthenticated: false, carrito: [], accessToken: null, usuario: usuarioInicial })
+      },
+      setAccessToken: (token: string) => {
+        set({ accessToken: token })
+        // Decodificar token y actualizar usuario
+        try {
+          const decoded = JSON.parse(atob(token.split('.')[1]))
+          const usuario: Usuario = {
+            id: decoded.sub || "",
+            email: decoded.email || "",
+            rol: (decoded.role || "CURSANTE") as "CURSANTE" | "ADMIN" | "EMPLEADO",
+          }
+          set({ usuario, isAuthenticated: true })
+        } catch (error) {
+          console.error("Error decodificando token:", error)
+        }
+      },
+      setAuthData: (accessToken: string, usuario: Usuario) => {
+        set({ accessToken, usuario, isAuthenticated: true })
       },
       
       // Usuario
@@ -197,12 +222,16 @@ export const useStore = create<StoreState>()(
       agregarAlCarrito: (cartilla, cantidad = 1) => {
         const carrito = get().carrito
         const itemExistente = carrito.find((item) => item.cartilla.id === cartilla.id)
+        // El backend puede devolver stock o cantidad
+        const stockValido = Number(cartilla?.stock ?? cantidad ?? 999);
+        
+        console.log('[Store] agregarAlCarrito, id:', cartilla.id, 'stock disponible:', stockValido);
         
         if (itemExistente) {
           set({
             carrito: carrito.map((item) =>
               item.cartilla.id === cartilla.id
-                ? { ...item, cantidad: Math.min(item.cantidad + cantidad, cartilla.stock) }
+                ? { ...item, cantidad: Math.min(item.cantidad + cantidad, stockValido) }
                 : item
             ),
           })
@@ -214,17 +243,22 @@ export const useStore = create<StoreState>()(
         set({ carrito: get().carrito.filter((item) => item.cartilla.id !== cartillaId) })
       },
       actualizarCantidad: (cartillaId, cantidad) => {
-        if (cantidad <= 0) {
+        console.log('[Store] actualizarCantidad called:', cartillaId, cantidad);
+        if (cantidad <= 0 || isNaN(cantidad)) {
           get().eliminarDelCarrito(cartillaId)
           return
         }
+        const item = get().carrito.find(i => i.cartilla.id === cartillaId)
+        const stockValido = item ? Number((item.cartilla as any)?.stock ?? (item.cartilla as any)?.cantidad ?? 999) : 999
+        
         set({
           carrito: get().carrito.map((item) =>
             item.cartilla.id === cartillaId
-              ? { ...item, cantidad: Math.min(cantidad, item.cartilla.stock) }
+              ? { ...item, cantidad: Math.min(cantidad, stockValido) }
               : item
           ),
         })
+        console.log('[Store] Carrito after update:', get().carrito);
       },
       vaciarCarrito: () => set({ carrito: [] }),
       getTotalCarrito: () => {

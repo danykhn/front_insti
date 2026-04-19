@@ -12,6 +12,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
+import React from "react"
 
 interface DashboardLayoutProps {
   children: React.ReactNode
@@ -34,14 +35,16 @@ export function DashboardLayout({ children, title, breadcrumbs }: DashboardLayou
                 <BreadcrumbLink href="/">Inicio</BreadcrumbLink>
               </BreadcrumbItem>
               {breadcrumbs?.map((crumb, index) => (
-                <BreadcrumbItem key={index}>
+                <React.Fragment key={index}>
                   <BreadcrumbSeparator />
-                  {crumb.href ? (
-                    <BreadcrumbLink href={crumb.href}>{crumb.label}</BreadcrumbLink>
-                  ) : (
-                    <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
-                  )}
-                </BreadcrumbItem>
+                  <BreadcrumbItem>
+                    {crumb.href ? (
+                      <BreadcrumbLink href={crumb.href}>{crumb.label}</BreadcrumbLink>
+                    ) : (
+                      <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
+                    )}
+                  </BreadcrumbItem>
+                </React.Fragment>
               ))}
               {!breadcrumbs?.length && title !== "Inicio" && (
                 <>

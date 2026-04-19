@@ -81,12 +81,13 @@ class AuthService {
       // Enviamos los datos al backend para crear/actualizar el usuario
       const response = await this.api.post('/auth/google/login', {
         email: profile.email,
-        firstName: profile.name?.split(' ')[0] || profile.name || '',
-        lastName: profile.name?.split(' ').slice(1).join(' ') || '',
-        picture: profile.image || null,
+        firstName: profile.firstName?.split(' ')[0] || profile.name || '',
+        lastName: profile.lastName?.split(' ').slice(1).join(' ') || '',
+        picture: profile.picture || null,
         googleId: profile.id || null,
       });
 
+      console.log('[AuthService] googleLogin response:', response.data);
       // Manejar diferentes formatos de respuesta del backend
       let data: AuthToken;
       const responseData = response.data;
@@ -117,8 +118,10 @@ class AuthService {
 
       this.setToken(data.accessToken);
       this.setUser(data.user);
+      console.log('[AuthService] googleLogin successful, role:', data.user?.role);
       return data;
     } catch (error) {
+      console.error('[AuthService] googleLogin error:', error);
       throw error;
     }
   }
@@ -138,6 +141,15 @@ class AuthService {
    */
   setToken(token: string): void {
     if (typeof window !== 'undefined') {
+      // Decodificar token para obtener el rol
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        console.log('[AuthService] Token payload:', payload);
+        console.log('[AuthService] User role:', payload.role);
+      } catch (e) {
+        console.log('[AuthService] Error decodificando token');
+      }
+      
       localStorage.setItem('auth_token', token);
       this.api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       
@@ -152,15 +164,18 @@ class AuthService {
   /**
    * Eliminar el token y cerrar sesión
    */
-  logout(): void {
+logout(): void {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('auth_token');
-      localStorage.removeItem('user_data');
-      delete this.api.defaults.headers.common['Authorization'];
-      
-      // Limpiar token en todos los servicios
-      userService.clearToken();
+      localStorage.removeItem('auth_user');
+      this.api.defaults.headers.common['Authorization'] = '';
     }
+  }
+
+hasValidToken(): boolean {
+    if (typeof window === 'undefined') return false;
+    const token = localStorage.getItem('auth_token');
+    return !!token;
   }
 
   /**
@@ -182,11 +197,37 @@ class AuthService {
   }
 
   /**
+   * Obtener pedidos del usuario actual
+   */
+  async getUserOrders() {
+    try {
+      const response = await this.api.get('/pedidos');
+      return response.data || [];
+    } catch (error) {
+      console.error('[AuthService] Error getting orders:', error);
+      return [];
+    }
+  }
+
+  /**
    * Guardar datos del usuario
    */
   setUser(user: any): void {
     if (typeof window !== 'undefined') {
       localStorage.setItem('user_data', JSON.stringify(user));
+      
+      // Also update the store
+      try {
+        const { useStore } = require('@/lib/store');
+        useStore.getState().setUsuario(user);
+        useStore.getState().setAuthData(
+          localStorage.getItem('auth_token'), 
+          user
+        );
+      } catch (e) {
+        // Store might not be ready yet
+        console.log('[AuthService] Could not update store');
+      }
     }
   }
 }

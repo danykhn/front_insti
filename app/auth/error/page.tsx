@@ -1,11 +1,23 @@
 "use client"
 
+import { Suspense } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { AlertCircle, ArrowLeft } from "lucide-react"
+import { AlertCircle, ArrowLeft, Loader2 } from "lucide-react"
 
-export default function AuthErrorPage() {
+function AuthErrorFallback() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="flex flex-col items-center gap-4">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <p className="text-sm text-muted-foreground">Cargando...</p>
+      </div>
+    </div>
+  )
+}
+
+function AuthErrorContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const error = searchParams.get("error") || "Error de autenticación desconocido"
@@ -13,7 +25,6 @@ export default function AuthErrorPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-primary/5 via-background to-accent/5">
-      {/* Header */}
       <header className="w-full py-6 px-4">
         <div className="max-w-7xl mx-auto flex items-center gap-3">
           <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary text-primary-foreground">
@@ -23,7 +34,6 @@ export default function AuthErrorPage() {
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="flex-1 flex items-center justify-center px-4 py-12">
         <div className="w-full max-w-md">
           <Card className="border-0 shadow-xl bg-card/80 backdrop-blur-sm border-red-200 border">
@@ -61,5 +71,13 @@ export default function AuthErrorPage() {
         </div>
       </main>
     </div>
+  )
+}
+
+export default function AuthErrorPage() {
+  return (
+    <Suspense fallback={<AuthErrorFallback />}>
+      <AuthErrorContent />
+    </Suspense>
   )
 }

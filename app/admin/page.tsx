@@ -73,7 +73,7 @@ function AdminPageContent() {
         {/* Saludo */}
         <div className="flex flex-col gap-2">
           <h1 className="text-2xl font-bold text-balance">
-            Bienvenido, {usuario.nombre.split(" ")[0]}
+            Bienvenido, {usuario.firstName || ""}
           </h1>
           <p className="text-muted-foreground">
             Gestión completa del sistema de cartillas.
