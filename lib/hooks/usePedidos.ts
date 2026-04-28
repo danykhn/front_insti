@@ -33,12 +33,16 @@ export function usePedidos() {
       console.log('[usePedidos] Carrito:', useStore.getState().carrito);
       
       // Verificar que authService tenga token
-      const hasToken = authService.hasValidToken();
-      console.log('[usePedidos] authService tiene token:', hasToken);
+      const token = authService.getToken();
+      console.log('[usePedidos] authService tiene token:', !!token);
       
-      if (!hasToken) {
+      if (!token) {
         throw new Error('No hay sesión activa. Por favor, inicia sesión nuevamente.');
       }
+
+      // IMPORTANTE: Setear el token en pedidosService
+      pedidosService.setToken(token);
+      console.log('[usePedidos] Token seteado en pedidosService');
 
       const carrito = useStore.getState().carrito;
       
@@ -59,10 +63,6 @@ export function usePedidos() {
 
       console.log('[usePedidos] Creando pedido con dto:', dto);
 
-      // Ver el token que se envía
-      const token = authService.getToken();
-      console.log('[usePedidos] Token a enviar:', token?.substring(0, 30));
-      
       const pedido = await pedidosService.createPedido(dto);
 
       useStore.getState().vaciarCarrito();

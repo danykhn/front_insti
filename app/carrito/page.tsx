@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { AuthGuard } from "@/components/auth-guard"
@@ -17,6 +17,8 @@ import {
   Loader2,
   AlertCircle,
   Upload,
+  CreditCard,
+  ExternalLink,
 } from "lucide-react"
 
 import { DashboardLayout } from "@/components/dashboard-layout"
@@ -33,10 +35,13 @@ import { toast } from "sonner"
 import { useStore } from "@/lib/store"
 import { usePedidos } from "@/lib/hooks/usePedidos"
 import { useDatosBancarios } from "@/lib/hooks/useDatosBancarios"
+import { usePayment } from "@/lib/hooks/usePayment"
+import { PAYMENT_METHODS } from "@/types/payment"
 
 const metodosPago = [
   { id: "TRANSFERENCIA", nombre: "Transferencia Bancaria", descripcion: "Pago electrónico", icono: Building },
   { id: "EFECTIVO", nombre: "Efectivo", descripcion: "Pago al recibir", icono: Banknote },
+  { id: "MERCADO_PAGO", nombre: "Mercado Pago", descripcion: "Pago con tarjeta", icono: CreditCard },
 ]
 
 /* =========================
@@ -153,7 +158,7 @@ function ResumenPedido({ carrito, total }) {
   )
 }
 
-function MetodoPago({ metodo, setMetodo, onProcesar, loading, datosBancarios, comprobante, setComprobante }) {
+function MetodoPago({ metodo, setMetodo, onProcesar, loading, datosBancarios, comprobante, setComprobante, isCreatingMPRecord, mpOrderUrl, onPagarMercadoPago }) {
   return (
     <Card>
       <CardHeader>
@@ -215,16 +220,63 @@ function MetodoPago({ metodo, setMetodo, onProcesar, loading, datosBancarios, co
             </p>
           </div>
         )}
+
+        {metodo === "MERCADO_PAGO" && (
+          <div className="rounded-lg border bg-blue-50 p-4 space-y-3">
+            <div className="flex items-center gap-2 text-blue-700">
+              <CreditCard className="size-5" />
+              <h4 className="font-semibold">Pago seguro con Mercado Pago</h4>
+            </div>
+            <p className="text-sm text-blue-600">
+              Puedes pagar con tarjeta de crédito, débito o en efectivo.
+              Serás redirigido a Mercado Pago para completar el pago.
+            </p>
+          </div>
+        )}
+        
+        {metodo === "MERCADO_PAGO" && isCreatingMPRecord && (
+          <div className="rounded-lg border bg-blue-50 p-4">
+            <div className="flex items-center gap-2">
+              <Loader2 className="size-4 animate-spin text-blue-600" />
+              <span className="text-sm text-blue-600">Creando orden de pago...</span>
+            </div>
+          </div>
+        )}
+        
+        {metodo === "MERCADO_PAGO" && mpOrderUrl && (
+          <a
+            href={mpOrderUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-2 w-full py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <ExternalLink className="size-4" />
+            Ir a Mercado Pago
+          </a>
+        )}
       </CardContent>
 
       <CardFooter>
-        <Button 
-          onClick={onProcesar} 
-          disabled={loading || (metodo === "TRANSFERENCIA" && !comprobante)} 
-          className="w-full"
-        >
-          {loading ? <Loader2 className="animate-spin" /> : "Procesar Pedido"}
-        </Button>
+        {metodo !== "MERCADO_PAGO" || !mpOrderUrl ? (
+          <Button 
+            onClick={onProcesar} 
+            disabled={loading || (metodo === "TRANSFERENCIA" && !comprobante)} 
+            className="w-full"
+          >
+            {loading ? <Loader2 className="animate-spin" /> : "Procesar Pedido"}
+          </Button>
+        ) : null}
+        
+        {metodo === "MERCADO_PAGO" && mpOrderUrl && (
+          <Button 
+            onClick={onPagarMercadoPago}
+            disabled={isCreatingMPRecord}
+            className="w-full"
+            variant="secondary"
+          >
+            {isCreatingMPRecord ? <Loader2 className="animate-spin" /> : "Generar Nuevo Pago"}
+          </Button>
+        )}
       </CardFooter>
     </Card>
   )
@@ -238,6 +290,7 @@ function CarritoPageContent() {
   const router = useRouter()
   const { crearPedido, isLoading } = usePedidos()
   const { datos, loading: loadingDatos } = useDatosBancarios()
+  const { crearOrdenMercadoPago, loading: mpLoading, obtenerUrlPago } = usePayment()
 
   const usuario = useStore(s => s.usuario)
   const token = useStore(s => s.token)
@@ -249,8 +302,16 @@ function CarritoPageContent() {
   const [metodo, setMetodo] = useState("TRANSFERENCIA")
   const [confirmado, setConfirmado] = useState(false)
   const [comprobante, setComprobante] = useState<File | null>(null)
+  const [mpOrderUrl, setMpOrderUrl] = useState<string | null>(null)
+  const [currentPedidoId, setCurrentPedidoId] = useState<string | null>(null)
+  const [isCreatingMPRecord, setIsCreatingMPRecord] = useState(false)
 
   const procesar = async () => {
+    if (metodo === "MERCADO_PAGO") {
+      await handlePagarMercadoPago();
+      return;
+    }
+
     const pedido = await crearPedido(metodo);
     if (!pedido) return;
 
@@ -281,6 +342,39 @@ function CarritoPageContent() {
     router.push("/pedidos");
   }
 
+  const handlePagarMercadoPago = async () => {
+    setIsCreatingMPRecord(true);
+    try {
+      // Crear pedido con TRANSFERENCIA (el backend no acepta MERCADO_PAGO)
+      // Luego generamos el pago con Mercado Pago
+      const pedido = await crearPedido("TRANSFERENCIA");
+      if (!pedido) {
+        throw new Error("Error al crear el pedido");
+      }
+
+      setCurrentPedidoId(pedido.id);
+      const order = await crearOrdenMercadoPago(pedido.id);
+      const urlPago = obtenerUrlPago(order);
+      
+      if (urlPago) {
+        setMpOrderUrl(urlPago);
+        window.open(urlPago, '_blank');
+      } else {
+        toast.error("No se pudo obtener la URL de pago");
+      }
+    } catch (err: any) {
+      console.error("Error en Mercado Pago:", err);
+      toast.error(err.message || "Error al procesar el pago con Mercado Pago");
+    } finally {
+      setIsCreatingMPRecord(false);
+    }
+  }
+
+  const generarNuevoPagoMP = () => {
+    setMpOrderUrl(null);
+    setCurrentPedidoId(null);
+  }
+
   return (
     <DashboardLayout title="Carrito">
 
@@ -302,7 +396,23 @@ function CarritoPageContent() {
               datosBancarios={datos}
               comprobante={comprobante}
               setComprobante={setComprobante}
+              isCreatingMPRecord={isCreatingMPRecord}
+              mpOrderUrl={mpOrderUrl}
+              onPagarMercadoPago={handlePagarMercadoPago}
             />
+            
+            {metodo === "MERCADO_PAGO" && currentPedidoId && (
+              <Card className="bg-muted/50">
+                <CardContent className="pt-4">
+                  <p className="text-sm text-muted-foreground">
+                    Si ya completaste el pago, puedes verificar el estado de tu pedido en la sección de pedidos.
+                  </p>
+                  <Button variant="outline" className="w-full mt-3" onClick={() => router.push("/pedidos")}>
+                    Ver Mis Pedidos
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       )}

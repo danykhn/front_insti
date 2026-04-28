@@ -1,7 +1,7 @@
 import axios, { AxiosInstance } from 'axios';
 
 export type PedidoEstado = 'PENDIENTE' | 'PAGADO' | 'COMPLETADO' | 'CANCELADO';
-export type MetodoPago = 'EFECTIVO' | 'TARJETA' | 'TRANSFERENCIA';
+export type MetodoPago = 'EFECTIVO' | 'TARJETA' | 'TRANSFERENCIA' | 'MERCADO_PAGO';
 
 export interface CartillaInfo {
   id: string;

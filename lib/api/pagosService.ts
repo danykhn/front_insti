@@ -1,4 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
+import type { CreateOrdenResponse } from '@/types/payment';
 
 export interface Pago {
   id: string;
@@ -88,6 +89,68 @@ class PagosService {
    */
   setToken(token: string): void {
     this.api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+  }
+
+  // ========== MERCADO PAGO ==========
+
+  /**
+   * Crear orden de pago con Mercado Pago
+   */
+  async crearOrdenMercadoPago(
+    pedidoId: string,
+    paymentMethodId?: string,
+    installments?: number
+  ): Promise<CreateOrdenResponse> {
+    try {
+      const response = await this.api.post('/mercadopago/crear-orden', {
+        pedidoId,
+        paymentMethodId,
+        installments,
+      });
+      return response.data as CreateOrdenResponse;
+    } catch (error) {
+      console.error('[PagosService] Error creating MercadoPago order:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Obtener estado de una orden de Mercado Pago
+   */
+  async obtenerOrdenMercadoPago(orderId: string) {
+    try {
+      const response = await this.api.get(`/mercadopago/obtener-orden/${orderId}`);
+      return response.data;
+    } catch (error) {
+      console.error('[PagosService] Error getting order:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Cancelar una orden de Mercado Pago
+   */
+  async cancelarOrdenMercadoPago(orderId: string) {
+    try {
+      const response = await this.api.post(`/mercadopago/cancelar-orden/${orderId}`);
+      return response.data;
+    } catch (error) {
+      console.error('[PagosService] Error canceling order:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Webhook de Mercado Pago (solo para el backend)
+   */
+  async procesarWebhook(data: any) {
+    try {
+      const response = await this.api.post('/mercadopago/webhook', data);
+      return response.data;
+    } catch (error) {
+      console.error('[PagosService] Error processing webhook:', error);
+      throw error;
+    }
   }
 }
 
